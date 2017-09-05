@@ -254,28 +254,49 @@ aStar <- function(start, goal, roads){
   fScore[start$x, start$y] = calculateHeuristicValue(start, goal, roads)
   
   while(all(is.na(openSet)) == FALSE){
-    current = getLowestValueFromOpenSet(openSet, fScore)
-    if(current == goal){
+    lowestResult = getLowestValueFromOpenSet(openSet, fScore)
+    current = lowestResult$current
+    index = lowestResult$index
+    if(current$x == goal$x & current$y == goal$y){
       return
     }
-    
-    print(current)
+    openSet[[index]] <- NULL
+    closedSet <- c(closedSet, current)
+    neighbours = getNeighbours(current)
+    for(neighbour in names(neighbours)){
+      print(neighbours[[neighbour]])
+    }
     break
   }
-  #print(openSet)
+}
+
+getNeighbours <- function(current){
+  left = current$x - 1
+  right = current$x + 1
+  bottom = current$y - 1
+  top = current$y + 1
+  if(left < 1 | left > 10) left = -1
+  if(right < 1 | right > 10) right = -1
+  if(bottom < 1 | bottom > 10) bottom = -1
+  if(top < 1 | top > 10) top = -1 
+  neighbours <- list(left=left, right=right, bottom=bottom, top=top)
+  return (neighbours)
 }
 getLowestValueFromOpenSet<-function(openSet, fScore){
   lowest = -1
   #print(openSet[[1]]$x)
+  index = -1
   for(i in 1:length(openSet)){
     current = fScore[openSet[[i]]$x, openSet[[i]]$y]
     
     if(lowest == -1 | current<lowest){
       lowest = openSet[[i]]
+      index = i
     }
     break
   }
-  return (lowest)
+  result <- list("current" = lowest, "index"=index)
+  return (result)
 }
 calculateHeuristicValue <- function(start, goal, roads){
   hroads = roads$hroads
