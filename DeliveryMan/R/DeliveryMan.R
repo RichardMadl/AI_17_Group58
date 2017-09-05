@@ -245,7 +245,7 @@ algorithm <- function(roads, carInfo, packages){
 
 aStar <- function(start, goal, roads){
   closedSet = matrix(,1,0)
-  openSet = list(start)
+  openSet = list(,)
   cameFrom = matrix(, 10, 10)
   gScore = matrix(Inf, 10, 10)
   gScore[start$x,start$y] = 0
@@ -263,22 +263,44 @@ aStar <- function(start, goal, roads){
     openSet[[index]] <- NULL
     closedSet <- c(closedSet, current)
     neighbours = getNeighbours(current)
+    
     for(neighbour in names(neighbours)){
-      print(neighbours[[neighbour]])
+      currentNeighbour = neighbours[[neighbour]]
+      if(currentNeighbour$exists){
+        convertedElement <- list(x=currentNeighbour$x, y=currentNeighbour$y)
+        if(containsPoint(convertedElement, closedSet)==FALSE){
+          
+          if(containsPoint(convertedElement, openSet)==FALSE){
+            openSet = c(openSet, convertedElement)
+          }
+          
+        }
+        
+      }
+      
     }
+    
     break
   }
 }
 
+containsPoint <- function(point, list){
+  for(element in list){
+    
+    print(element)
+  }
+  return (FALSE)
+}
+
 getNeighbours <- function(current){
-  left = current$x - 1
-  right = current$x + 1
-  bottom = current$y - 1
-  top = current$y + 1
-  if(left < 1 | left > 10) left = -1
-  if(right < 1 | right > 10) right = -1
-  if(bottom < 1 | bottom > 10) bottom = -1
-  if(top < 1 | top > 10) top = -1 
+  left = list(x=current$x - 1, y=current$y, exists=TRUE)
+  right = list(x=current$x + 1, y=current$y, exists=TRUE)
+  bottom = list(x=current$x,y=current$y - 1, exists=TRUE)
+  top = list(x=current$x, y=current$y + 1, exists=TRUE)
+  if(left$x < 1 | left$x > 10) left$exists = FALSE
+  if(right$x < 1 | right$x > 10) right$exists = FALSE
+  if(bottom$y < 1 | bottom$y > 10) bottom$exists = FALSE
+  if(top$y < 1 | top$y > 10) top$exists = FALSE
   neighbours <- list(left=left, right=right, bottom=bottom, top=top)
   return (neighbours)
 }
