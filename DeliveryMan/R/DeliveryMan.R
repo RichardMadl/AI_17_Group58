@@ -61,6 +61,9 @@ manualDM=function(roads,car,packages) {
 #' @param del The number of deliveries. You will be scored on a board with 5 deliveries.
 #' @return A string describing the outcome of the game.
 #' @export
+
+library(rlist)
+
 runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
                             doPlot=T,pause=0.1,del=5) {
   roads=makeRoadMatrices(dim)
@@ -244,16 +247,23 @@ algorithm <- function(roads, carInfo, packages){
 }
 
 aStar <- function(start, goal, roads){
-  closedSet = matrix(,1,0)
-  openSet = list(,)
+  closedSet = data.frame()
+  openSet = data.frame(
+    id=1,
+    x=1,
+    y=1,
+    stringsAsFactors = FALSE
+  )
   cameFrom = matrix(, 10, 10)
   gScore = matrix(Inf, 10, 10)
   gScore[start$x,start$y] = 0
   fScore = matrix(Inf, 10, 10)
   
+  print(closedSet)
+  print(openSet)
   fScore[start$x, start$y] = calculateHeuristicValue(start, goal, roads)
   
-  while(all(is.na(openSet)) == FALSE){
+  while(length(openSet$id > 0)){
     lowestResult = getLowestValueFromOpenSet(openSet, fScore)
     current = lowestResult$current
     index = lowestResult$index
@@ -332,4 +342,16 @@ calculateHeuristicValue <- function(start, goal, roads){
       hvalue = hvalue + vroads[goal$x,i]
   }
   return (hvalue)
+}
+
+addToSet <- function(set, x, y) {
+  newEntry <- data.frame(
+    #Creates new id = last id in set+1 (such an ugly way to do this but w/e)
+    id = (openSet$id[length(openSet$id)]+1),
+    x=x,
+    y=y,
+    stringsAsFactors = FALSE
+  )
+  newSet <- rbind(set, newEntry)
+  return(newSet)
 }
