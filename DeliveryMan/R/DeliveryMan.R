@@ -61,10 +61,7 @@ manualDM=function(roads,car,packages) {
 #' @param del The number of deliveries. You will be scored on a board with 5 deliveries.
 #' @return A string describing the outcome of the game.
 #' @export
-
-library(rlist)
-
-runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
+runDeliveryMan <- function (carReady=nextMove,dim=10,turns=2000,
                             doPlot=T,pause=0.1,del=5) {
   roads=makeRoadMatrices(dim)
   car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list())
@@ -72,9 +69,7 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
   packages[,5]=rep(0,del)
   for (i in 1:turns) {
     roads=updateRoads(roads$hroads,roads$vroads)
-    print(roads)
-    print(packages)
-    algorithm(roads,car,packages)
+    nextMove(roads,car,packages)
     if (doPlot) {
       makeDotGrid(dim,i) 
       plotRoads(roads$hroads,roads$vroads) 
@@ -95,7 +90,7 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,
           print (paste("Congratulations! You suceeded in",i,"turns!"))
           return (i)
         }
-      }      
+      }
       car=carReady(roads,car,packages)
       car=processNextMove(car,roads,dim)
     } else {
@@ -233,125 +228,120 @@ updateRoads<-function(hroads,vroads) {
   list (hroads=hroads,vroads=vroads)
 }
 
-algorithm <- function(roads, carInfo, packages){
-  hroads = roads$hroads
-  vroads = roads$vroads
-  
-  currentPosition <- list(x = carInfo$x, y =carInfo$y)
-  
-  goalPosition <- list(x = packages[1,1], y =packages[1,2])
-  
-  aStar(currentPosition, goalPosition, roads)
-  carInfo$nextMove[1] = 8
-  #print(packages[1])
+nextMove = function(roads,car,packages) {
+  start <- list(x=car$x, y=car$y)
+  goal <- list(x=packages[1,1], y=packages[1,2])
+  car$nextMove = aStar(start, goal, roads)
+  return(car)
 }
-
-aStar <- function(start, goal, roads){
-  closedSet = data.frame()
-  openSet = data.frame(
-    id=1,
-    x=1,
-    y=1,
-    stringsAsFactors = FALSE
-  )
-  cameFrom = matrix(, 10, 10)
-  gScore = matrix(Inf, 10, 10)
-  gScore[start$x,start$y] = 0
-  fScore = matrix(Inf, 10, 10)
-  
-  print(closedSet)
-  print(openSet)
-  fScore[start$x, start$y] = calculateHeuristicValue(start, goal, roads)
-  
-  while(length(openSet$id > 0)){
-    lowestResult = getLowestValueFromOpenSet(openSet, fScore)
-    current = lowestResult$current
-    index = lowestResult$index
-    if(current$x == goal$x & current$y == goal$y){
-      return
-    }
-    openSet[[index]] <- NULL
-    closedSet <- c(closedSet, current)
-    neighbours = getNeighbours(current)
+aStar = function(start, goal, roads){
+  if(start$y==goal$x & start$y == goal$y){
+    return(1)
+  }
+  closedSet <- list()
+  openSet <- list(start)
+  cameFrom <- list()
+  gScore <- matrix(Inf, nrow = nrow(roads$hroads), ncol = ncol(roads$vroads))
+  gScore[start$x, start$y] = 0
+  fScore <- matrix(Inf, nrow = nrow(roads$hroads), ncol = ncol(roads$vroads))
+  fScore[start$x, start$y] = manhattanDistance(start,goal,roads)
+  while(list.count(openSet)>0){
+    current = getNextNode(openSet, fScore)
     
-    for(neighbour in names(neighbours)){
-      currentNeighbour = neighbours[[neighbour]]
-      if(currentNeighbour$exists){
-        convertedElement <- list(x=currentNeighbour$x, y=currentNeighbour$y)
-        if(containsPoint(convertedElement, closedSet)==FALSE){
-          
-          if(containsPoint(convertedElement, openSet)==FALSE){
-            openSet = c(openSet, convertedElement)
-          }
-          
+    if(current$x == goal$x && current$y == goal$y){
+      path = reconstructPath(cameFrom, current)
+      return(list.first(path)$step)
+    }
+    
+    openSet = list.exclude(openSet, x==current$x & y==current$y)
+    
+    list.append(closedSet, current)
+    
+    neighbours = getNeighbours(current, roads)
+    
+    for(neighbour in neighbours){
+      if(!existsInList(neighbour, closedSet)){
+        if(!existsInList(neighbour, openSet)){
+          openSet = list.append(openSet, neighbour)
         }
-        
+        tentativeScore = gScore[current$x, current$y] + manhattanDistance(current,neighbour,roads)
+        if(tentativeScore < gScore[neighbour$x, neighbour$y]){
+          cameFrom = updateCameFrom(cameFrom, neighbour, current)
+          gScore[neighbour$x, neighbour$y] = tentativeScore
+          fScore[neighbour$x, neighbour$y] = tentativeScore + manhattanDistance(neighbour, goal, roads)
+        }
       }
-      
     }
     
-    break
   }
 }
-
-containsPoint <- function(point, list){
-  for(element in list){
-    
-    print(element)
+updateCameFrom <- function(cameFrom, neighbour, current){
+  cameFrom = list.exclude(cameFrom, x==neighbour$x & y==neighbour$y)
+  cameFrom = list.append(cameFrom, list(x=neighbour$x, y=neighbour$y, from=current))
+  return (cameFrom)
+}
+reconstructPath <- function(cameFrom, current){
+  totalPath = list(current)
+  while(existsInList(current, cameFrom)){
+    previous = list.first(cameFrom, x==current$x & y==current$y)$from
+    step = deriveStepFromNeighbour(current, previous)
+    current = list(x=previous$x, y=previous$y, step = step)
+    totalPath = list.append(totalPath, current)
   }
-  return (FALSE)
+  totalPath = list.reverse(totalPath)
+  return (totalPath)
 }
 
-getNeighbours <- function(current){
-  left = list(x=current$x - 1, y=current$y, exists=TRUE)
-  right = list(x=current$x + 1, y=current$y, exists=TRUE)
-  bottom = list(x=current$x,y=current$y - 1, exists=TRUE)
-  top = list(x=current$x, y=current$y + 1, exists=TRUE)
-  if(left$x < 1 | left$x > 10) left$exists = FALSE
-  if(right$x < 1 | right$x > 10) right$exists = FALSE
-  if(bottom$y < 1 | bottom$y > 10) bottom$exists = FALSE
-  if(top$y < 1 | top$y > 10) top$exists = FALSE
-  neighbours <- list(left=left, right=right, bottom=bottom, top=top)
-  return (neighbours)
+existsInList <- function(element, list){
+  return (list.count(list, x==element$x & y==element$y)>0)
 }
-getLowestValueFromOpenSet<-function(openSet, fScore){
-  lowest = -1
-  #print(openSet[[1]]$x)
-  index = -1
-  for(i in 1:length(openSet)){
-    current = fScore[openSet[[i]]$x, openSet[[i]]$y]
-    
-    if(lowest == -1 | current<lowest){
-      lowest = openSet[[i]]
-      index = i
+
+getNeighbours <-function(current, roads){
+  neighbours = list()
+  if(current$x-1>0) {
+    neighbours = list.append(neighbours, list(x=current$x-1, y=current$y))
+  }
+  if(current$x+1<ncol(roads$hroads)) {
+    neighbours = list.append(neighbours, list(x=current$x+1, y=current$y))
+  }
+  if(current$y-1>0) {
+    neighbours = list.append(neighbours, list(x=current$x, y=current$y-1))
+  }
+  if(current$y+1<nrow(roads$vroads)) {
+    neighbours = list.append(neighbours, list(x=current$x, y=current$y+1))
+  }
+  return(neighbours)
+}
+
+getNextNode <- function(set, fScore){
+  bestFScore = Inf
+  bestNode = list(x=-1, y=-1)
+  for(node in set){
+    if(fScore[node$x, node$y]<bestFScore){
+      bestFScore = fScore[node$x, node$y]
+      bestNode = node
     }
-    break
   }
-  result <- list("current" = lowest, "index"=index)
-  return (result)
+  return (bestNode)
 }
-calculateHeuristicValue <- function(start, goal, roads){
-  hroads = roads$hroads
-  vroads = roads$vroads
-  
-  hvalue=0
+manhattanDistance <- function(start, goal, roads){
+  distance = 0
   for(i in start$x:goal$x){
-      hvalue = hvalue + hroads[i,start$y]
+    if(i!=goal$x){
+      distance = distance + roads$hroads[start$y, i]
+    }
   }
   for(i in start$y:goal$y){
-      hvalue = hvalue + vroads[goal$x,i]
+    if(i!=goal$y){
+      distance = distance + roads$vroads[i, goal$x]
+    }
   }
-  return (hvalue)
+  return(distance)
 }
 
-addToSet <- function(set, x, y) {
-  newEntry <- data.frame(
-    #Creates new id = last id in set+1 (such an ugly way to do this but w/e)
-    id = (openSet$id[length(openSet$id)]+1),
-    x=x,
-    y=y,
-    stringsAsFactors = FALSE
-  )
-  newSet <- rbind(set, newEntry)
-  return(newSet)
+deriveStepFromNeighbour <- function(current, neighbour){
+  if(current$x+1 == neighbour$x) return(4)
+  if(current$x-1 == neighbour$x) return(6)
+  if(current$y+1 == neighbour$y) return(2)
+  if(current$y-1 == neighbour$y) return(8)
 }
