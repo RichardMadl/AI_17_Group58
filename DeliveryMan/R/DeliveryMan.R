@@ -69,7 +69,7 @@ runDeliveryMan <- function (carReady=nextMove,dim=10,turns=2000,
   packages[,5]=rep(0,del)
   for (i in 1:turns) {
     roads=updateRoads(roads$hroads,roads$vroads)
-    nextMove(roads,car,packages)
+    #nextMove(roads,car,packages)
     if (doPlot) {
       makeDotGrid(dim,i) 
       plotRoads(roads$hroads,roads$vroads) 
@@ -231,11 +231,31 @@ updateRoads<-function(hroads,vroads) {
 nextMove = function(roads,car,packages) {
   start <- list(x=car$x, y=car$y)
   goal <- list(x=packages[1,1], y=packages[1,2])
-  car$nextMove = aStar(start, goal, roads)
+  if(car$load!=0){
+    goal <- list(x=packages[car$load,3], y=packages[car$load,4])
+  }else{
+    nextMove  <- list(move=0, cost=Inf)
+    for(i in 1:nrow(packages)){
+      goal <- list(x=packages[i,1], y=packages[i,2])
+      currentNextMove <- list(move = 1, cost = Inf)
+      currentNextMove <- aStar(start, goal, roads)
+      print(cat("Current next move cost: ", currentNextMove$cost))
+      print(cat("Next move cost: ", nextMove$cost))
+      if(currentNextMove$cost < nextMove$cost){
+        nextMove = currentNextMove
+      }
+    }
+  }
+  car$nextMove = nextMove$move
   return(car)
 }
+
+
 aStar = function(start, goal, roads){
-  if(start$y==goal$x & start$y == goal$y){
+  nextMove = list(move = 0, cost = Inf)
+  if(start$x==goal$x & start$y == goal$y){
+    
+    nextMove$move = 1
     return(1)
   }
   closedSet <- list()
@@ -246,16 +266,19 @@ aStar = function(start, goal, roads){
   fScore <- matrix(Inf, nrow = nrow(roads$hroads), ncol = ncol(roads$vroads))
   fScore[start$x, start$y] = manhattanDistance(start,goal,roads)
   while(list.count(openSet)>0){
+    
     current = getNextNode(openSet, fScore)
     
     if(current$x == goal$x && current$y == goal$y){
       path = reconstructPath(cameFrom, current)
-      return(list.first(path)$step)
+      nextMove$cost = gScore[current$x, current$y]
+      nextMove$move = list.first(path)$step
+      return(nextMove)
     }
     
     openSet = list.exclude(openSet, x==current$x & y==current$y)
     
-    list.append(closedSet, current)
+    closedSet = list.append(closedSet, current)
     
     neighbours = getNeighbours(current, roads)
     
@@ -272,7 +295,6 @@ aStar = function(start, goal, roads){
         }
       }
     }
-    
   }
 }
 updateCameFrom <- function(cameFrom, neighbour, current){
@@ -301,13 +323,13 @@ getNeighbours <-function(current, roads){
   if(current$x-1>0) {
     neighbours = list.append(neighbours, list(x=current$x-1, y=current$y))
   }
-  if(current$x+1<ncol(roads$hroads)) {
+  if(current$x+1<=ncol(roads$hroads)) {
     neighbours = list.append(neighbours, list(x=current$x+1, y=current$y))
   }
   if(current$y-1>0) {
     neighbours = list.append(neighbours, list(x=current$x, y=current$y-1))
   }
-  if(current$y+1<nrow(roads$vroads)) {
+  if(current$y+1<=nrow(roads$vroads)) {
     neighbours = list.append(neighbours, list(x=current$x, y=current$y+1))
   }
   return(neighbours)
@@ -326,16 +348,34 @@ getNextNode <- function(set, fScore){
 }
 manhattanDistance <- function(start, goal, roads){
   distance = 0
-  for(i in start$x:goal$x){
-    if(i!=goal$x){
-      distance = distance + roads$hroads[start$y, i]
+  if(start$x<=goal$x){
+    for(i in start$x:goal$x){
+      if(i!=goal$x){
+        distance = distance + roads$hroads[start$y, i]
+      }
+    }
+  }else{
+    for(i in goal$x:start$x){
+      if(i!=goal$x){
+        distance = distance + roads$hroads[start$y, i]
+      }
     }
   }
-  for(i in start$y:goal$y){
-    if(i!=goal$y){
-      distance = distance + roads$vroads[i, goal$x]
+  
+  if(start$y<=goal$y){
+    for(i in start$y:goal$y){
+      if(i!=goal$y){
+        distance = distance + roads$vroads[i, goal$x]
+      }
+    }
+  }else{
+    for(i in goal$y:start$y){
+      if(i!=goal$y){
+        distance = distance + roads$vroads[i, goal$x]
+      }
     }
   }
+  
   return(distance)
 }
 
