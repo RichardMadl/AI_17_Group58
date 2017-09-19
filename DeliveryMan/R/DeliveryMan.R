@@ -67,6 +67,8 @@ runDeliveryMan <- function (carReady=nextMove,dim=10,turns=2000,
   car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list())
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
+  print(packages)
+  print(car)
   for (i in 1:turns) {
     roads=updateRoads(roads$hroads,roads$vroads)
     #nextMove(roads,car,packages)
@@ -230,23 +232,23 @@ updateRoads<-function(hroads,vroads) {
 
 nextMove = function(roads,car,packages) {
   start <- list(x=car$x, y=car$y)
-  goal <- list(x=packages[1,1], y=packages[1,2])
-  if(car$load!=0){
-    goal <- list(x=packages[car$load,3], y=packages[car$load,4])
-  }else{
-    nextMove  <- list(move=0, cost=Inf)
+  goal <- chooseBestPackage(car, packages, roads)
+  # if(car$load!=0){
+  #   goal <- list(x=packages[car$load,3], y=packages[car$load,4])
+  # }else{
+    bestMove  <- list(move=0, cost=Inf)
     for(i in 1:nrow(packages)){
-      goal <- list(x=packages[i,1], y=packages[i,2])
-      currentNextMove <- list(move = 1, cost = Inf)
+      #goal <- list(x=packages[i,1], y=packages[i,2])
+      #currentNextMove <- list(move = 1, cost = Inf)
       currentNextMove <- aStar(start, goal, roads)
-      print(cat("Current next move cost: ", currentNextMove$cost))
-      print(cat("Next move cost: ", nextMove$cost))
-      if(currentNextMove$cost < nextMove$cost){
-        nextMove = currentNextMove
+      # print(cat("Current next move cost: ", currentNextMove$cost))
+      # print(cat("Next move cost: ", bestMove$cost))
+      if(currentNextMove$cost < bestMove$cost){
+        bestMove = currentNextMove
       }
     }
-  }
-  car$nextMove = nextMove$move
+    car$nextMove = bestMove$move
+  #}
   return(car)
 }
 
@@ -384,4 +386,25 @@ deriveStepFromNeighbour <- function(current, neighbour){
   if(current$x-1 == neighbour$x) return(6)
   if(current$y+1 == neighbour$y) return(2)
   if(current$y-1 == neighbour$y) return(8)
+}
+
+chooseBestPackage <- function(car, packages, roads) {
+  start <- list(x=car$x, y=car$y)
+  bestPackage <- list()
+  if(car$load>0){
+    bestPackage <- list(x=packages[car$load,3], y=packages[car$load,4])
+  } else {
+    packageList <- list()
+    for(packageNum in 1:5) {
+      if(packages[packageNum,5]==0){
+        x=packages[packageNum,1]
+        y=packages[packageNum,2]
+        packageAdd <- list(row=packageNum, x=x, y=y, dist=(abs(x-car$x)+abs(y-car$y)))
+        packageList = list.append(packageList, packageAdd)
+      }
+    }
+    packageList = list.sort(packageList, dist)
+    bestPackage <- list(x=packageList[[1]]$x, y=packageList[[1]]$y)
+  }
+  return(bestPackage)
 }
