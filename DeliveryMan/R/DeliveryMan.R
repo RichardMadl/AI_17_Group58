@@ -232,40 +232,33 @@ updateRoads<-function(hroads,vroads) {
 
 nextMove = function(roads,car,packages) {
   start <- list(x=car$x, y=car$y)
+  #Returns best package to pick up, or the goal of current load
   goal <- chooseBestPackage(car, packages, roads)
-  # if(car$load!=0){
-  #   goal <- list(x=packages[car$load,3], y=packages[car$load,4])
-  # }else{
-    bestMove  <- list(move=0, cost=Inf)
-    for(i in 1:nrow(packages)){
-      #goal <- list(x=packages[i,1], y=packages[i,2])
-      #currentNextMove <- list(move = 1, cost = Inf)
-      currentNextMove <- aStar(start, goal, roads)
-      # print(cat("Current next move cost: ", currentNextMove$cost))
-      # print(cat("Next move cost: ", bestMove$cost))
-      if(currentNextMove$cost < bestMove$cost){
-        bestMove = currentNextMove
-      }
-    }
-    car$nextMove = bestMove$move
-  #}
+  print(goal)
+  bestMove <- list(move=0, cost=Inf)
+  currentNextMove <- aStar(start, goal, roads)
+  print(cat("Current next move: ", currentNextMove$cost))
+  if(currentNextMove$cost < bestMove$cost){
+    bestMove = currentNextMove
+  }
+  car$nextMove = bestMove$move
   return(car)
 }
 
 
 aStar = function(start, goal, roads){
-  nextMove = list(move = 0, cost = Inf)
+  moveReturn = list(move = 0, cost = Inf)
   if(start$x==goal$x & start$y == goal$y){
-    
-    nextMove$move = 1
-    return(1)
+    moveReturn$move = 1
+    return(moveReturn)
   }
+  dim = dim(roads$hroads)[1]
   closedSet <- list()
   openSet <- list(start)
   cameFrom <- list()
-  gScore <- matrix(Inf, nrow = nrow(roads$hroads), ncol = ncol(roads$vroads))
+  gScore <- matrix(Inf, nrow = dim, ncol = dim)
   gScore[start$x, start$y] = 0
-  fScore <- matrix(Inf, nrow = nrow(roads$hroads), ncol = ncol(roads$vroads))
+  fScore <- matrix(Inf, nrow = dim, ncol = dim)
   fScore[start$x, start$y] = manhattanDistance(start,goal,roads)
   while(list.count(openSet)>0){
     
@@ -273,9 +266,9 @@ aStar = function(start, goal, roads){
     
     if(current$x == goal$x && current$y == goal$y){
       path = reconstructPath(cameFrom, current)
-      nextMove$cost = gScore[current$x, current$y]
-      nextMove$move = list.first(path)$step
-      return(nextMove)
+      moveReturn$cost = gScore[current$x, current$y]
+      moveReturn$move = list.first(path)$step
+      return(moveReturn)
     }
     
     openSet = list.exclude(openSet, x==current$x & y==current$y)
@@ -298,6 +291,7 @@ aStar = function(start, goal, roads){
       }
     }
   }
+  #browser()
 }
 updateCameFrom <- function(cameFrom, neighbour, current){
   cameFrom = list.exclude(cameFrom, x==neighbour$x & y==neighbour$y)
@@ -320,18 +314,25 @@ existsInList <- function(element, list){
   return (list.count(list, x==element$x & y==element$y)>0)
 }
 
+#There is an easier way to check if the neighbors are out of bounds of the map
 getNeighbours <-function(current, roads){
   neighbours = list()
-  if(current$x-1>0) {
+  #Check neighbours to left or right
+  if(current$x == (ncol(roads$hroads)+1)) { #Is current location at right edge of map?
     neighbours = list.append(neighbours, list(x=current$x-1, y=current$y))
-  }
-  if(current$x+1<=ncol(roads$hroads)) {
+  } else if(current$x == 1) { #Is current location at left edge of map?
+    neighbours = list.append(neighbours, list(x=current$x+1, y=current$y))
+  } else { #Otherwise, add both neighbours
+    neighbours = list.append(neighbours, list(x=current$x-1, y=current$y))
     neighbours = list.append(neighbours, list(x=current$x+1, y=current$y))
   }
-  if(current$y-1>0) {
+  #Check neighbours above and below
+  if(current$y == (nrow(roads$vroads)+1)) { #Is current loaction at top of map?
     neighbours = list.append(neighbours, list(x=current$x, y=current$y-1))
-  }
-  if(current$y+1<=nrow(roads$vroads)) {
+  } else if(current$y == 1) { #Is current location at bottom of map?
+    neighbours = list.append(neighbours, list(x=current$x, y=current$y+1))
+  } else { #Otherwise, add both above and below neighbours
+    neighbours = list.append(neighbours, list(x=current$x, y=current$y-1))
     neighbours = list.append(neighbours, list(x=current$x, y=current$y+1))
   }
   return(neighbours)
@@ -390,7 +391,6 @@ deriveStepFromNeighbour <- function(current, neighbour){
 
 chooseBestPackage <- function(car, packages, roads) {
   start <- list(x=car$x, y=car$y)
-  bestPackage <- list()
   if(car$load>0){
     bestPackage <- list(x=packages[car$load,3], y=packages[car$load,4])
   } else {
