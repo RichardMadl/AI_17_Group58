@@ -351,11 +351,11 @@ getNextNode <- function(set, fScore){
 }
 manhattanDistance <- function(start, goal, roads){
   #print(paste0("Finding Manhattan distance!"))
-  # print("Start: ")
-  # print(start)
-  # print("Goal: ")
-  # print(goal)
-  browser()
+  print("Start: ")
+  print(start)
+  print("Goal: ")
+  print(goal)
+  #browser()
   hDist = 0
   vDist = 0
   yMin = min(start$y, goal$y)
@@ -367,8 +367,16 @@ manhattanDistance <- function(start, goal, roads){
   # testV = sum(roads$vroads[(max(start$x, goal$x)-1):min(start$x, goal$x), min])
   # testV = sum(roads$vroads[min(start$y, goal$y):(max(start$y, goal$y)-1), min(start$x, goal$x)])
   # testH = sum(roads$hroads[max(start$y, goal$y), min(start$x,goal$x):(max(start$x, goal$x)-1)])
-  testV = sum(roads$vroads[yMin:(yMax-1), xMin])
-  testH = sum(roads$hroads[yMax, xMin:(xMax-1)])
+  if(start$y == goal$y) {
+    testV = 0
+  } else {
+    testV = sum(roads$vroads[yMin:(yMax-1), xMin])
+  }
+  if(start$x == goal$x) {
+    testH = 0
+  } else {
+    testH = sum(roads$hroads[yMax, xMin:(xMax-1)])
+  }
   
     
   # #Sum horizontal distances
