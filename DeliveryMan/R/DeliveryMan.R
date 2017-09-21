@@ -350,35 +350,37 @@ getNextNode <- function(set, fScore){
   return (bestNode)
 }
 manhattanDistance <- function(start, goal, roads){
-  distance = 0
-  if(start$x<=goal$x){
-    for(i in start$x:goal$x){
-      if(i!=goal$x){
-        distance = distance + roads$hroads[start$y, i]
-      }
-    }
-  }else{
-    for(i in goal$x:start$x){
-      if(i!=goal$x){
-        distance = distance + roads$hroads[start$y, i]
-      }
-    }
-  }
+  #print(paste0("Finding Manhattan distance!"))
+  # print("Start: ")
+  # print(start)
+  # print("Goal: ")
+  # print(goal)
+  browser()
+  hDist = 0
+  vDist = 0
+  yMin = min(start$y, goal$y)
+  yMax = max(start$y, goal$y)
+  xMin = min(start$x, goal$x)
+  xMax = min(start$x, goal$x)
   
-  if(start$y<=goal$y){
-    for(i in start$y:goal$y){
-      if(i!=goal$y){
-        distance = distance + roads$vroads[i, goal$x]
-      }
-    }
-  }else{
-    for(i in goal$y:start$y){
-      if(i!=goal$y){
-        distance = distance + roads$vroads[i, goal$x]
-      }
-    }
-  }
+  # testH = sum(roads$hroads[min, min(start$x, goal$x):(max(start$x,goal$x)-1)])
+  # testV = sum(roads$vroads[(max(start$x, goal$x)-1):min(start$x, goal$x), min])
+  # testV = sum(roads$vroads[min(start$y, goal$y):(max(start$y, goal$y)-1), min(start$x, goal$x)])
+  # testH = sum(roads$hroads[max(start$y, goal$y), min(start$x,goal$x):(max(start$x, goal$x)-1)])
+  testV = sum(roads$vroads[yMin:(yMax-1), xMin])
+  testH = sum(roads$hroads[yMax, xMin:(xMax-1)])
   
+    
+  # #Sum horizontal distances
+  # for(i in min(start$x, goal$x):(max(start$x,goal$x)-1)) {
+  #   hDist = hDist + roads$hroads[min, i]
+  # }
+  # #Sum vertical values... I think I can use the same min as above?
+  # for(i in (max(start$x, goal$x)-1):min(start$x, goal$x)) {
+  #   vDist = vDist + roads$vroads[i, min]
+  # }
+  
+  distance = testH + testV
   return(distance)
 }
 
