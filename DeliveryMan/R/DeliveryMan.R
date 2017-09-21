@@ -234,10 +234,8 @@ nextMove = function(roads,car,packages) {
   start <- list(x=car$x, y=car$y)
   #Returns best package to pick up, or the goal of current load
   goal <- chooseBestPackage(car, packages, roads)
-  print(goal)
   bestMove <- list(move=0, cost=Inf)
   currentNextMove <- aStar(start, goal, roads)
-  print(cat("Current next move: ", currentNextMove$cost))
   if(currentNextMove$cost < bestMove$cost){
     bestMove = currentNextMove
   }
@@ -351,10 +349,10 @@ getNextNode <- function(set, fScore){
 }
 manhattanDistance <- function(start, goal, roads){
   #print(paste0("Finding Manhattan distance!"))
-  print("Start: ")
-  print(start)
-  print("Goal: ")
-  print(goal)
+  # print("Start: ")
+  # print(start)
+  # print("Goal: ")
+  # print(goal)
   #browser()
   hDist = 0
   vDist = 0
