@@ -67,8 +67,6 @@ runDeliveryMan <- function (carReady=nextMove,dim=10,turns=2000,
   car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list())
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
-  print(packages)
-  print(car)
   for (i in 1:turns) {
     roads=updateRoads(roads$hroads,roads$vroads)
     #nextMove(roads,car,packages)
@@ -234,18 +232,13 @@ nextMove = function(roads,car,packages) {
   start <- list(x=car$x, y=car$y)
   #Returns best package to pick up, or the goal of current load
   goal <- chooseBestPackage(car, packages, roads)
-  bestMove <- list(move=0, cost=Inf)
-  currentNextMove <- aStar(start, goal, roads)
-  if(currentNextMove$cost < bestMove$cost){
-    bestMove = currentNextMove
-  }
-  car$nextMove = bestMove$move
+  car$nextMove = aStar(start, goal, roads)
+  print(car$nextMove)
   return(car)
 }
 
 
 aStar = function(start, goal, roads){
-  moveReturn = list(move = 0, cost = Inf)
   if(start$x==goal$x & start$y == goal$y){
     moveReturn$move = 1
     return(moveReturn)
@@ -254,8 +247,11 @@ aStar = function(start, goal, roads){
   closedSet <- list()
   openSet <- list(start)
   cameFrom <- list()
+  #gScore keeps track of the cost to get from start to each location
   gScore <- matrix(Inf, nrow = dim, ncol = dim)
   gScore[start$x, start$y] = 0
+  #fScore is the cost to get from start to goal, passing through a certain location
+  #Takes into account the known gScore and the hueristc function we make
   fScore <- matrix(Inf, nrow = dim, ncol = dim)
   fScore[start$x, start$y] = manhattanDistance(start,goal,roads)
   while(list.count(openSet)>0){
@@ -264,8 +260,7 @@ aStar = function(start, goal, roads){
     
     if(current$x == goal$x && current$y == goal$y){
       path = reconstructPath(cameFrom, current)
-      moveReturn$cost = gScore[current$x, current$y]
-      moveReturn$move = list.first(path)$step
+      moveReturn = list.first(path)$step
       return(moveReturn)
     }
     
@@ -276,11 +271,15 @@ aStar = function(start, goal, roads){
     neighbours = getNeighbours(current, roads)
     
     for(neighbour in neighbours){
+      #Only enter if the neighbor is not in closed set
       if(!existsInList(neighbour, closedSet)){
+        #Discover a new node
         if(!existsInList(neighbour, openSet)){
           openSet = list.append(openSet, neighbour)
         }
+        #Tentative score is the known cost for a path, plus the hueristic distance
         tentativeScore = gScore[current$x, current$y] + manhattanDistance(current,neighbour,roads)
+        #If this is true, the newly found path is the new best path
         if(tentativeScore < gScore[neighbour$x, neighbour$y]){
           cameFrom = updateCameFrom(cameFrom, neighbour, current)
           gScore[neighbour$x, neighbour$y] = tentativeScore
@@ -291,11 +290,13 @@ aStar = function(start, goal, roads){
   }
   #browser()
 }
+
 updateCameFrom <- function(cameFrom, neighbour, current){
   cameFrom = list.exclude(cameFrom, x==neighbour$x & y==neighbour$y)
   cameFrom = list.append(cameFrom, list(x=neighbour$x, y=neighbour$y, from=current))
   return (cameFrom)
 }
+
 reconstructPath <- function(cameFrom, current){
   totalPath = list(current)
   while(existsInList(current, cameFrom)){
@@ -312,7 +313,6 @@ existsInList <- function(element, list){
   return (list.count(list, x==element$x & y==element$y)>0)
 }
 
-#There is an easier way to check if the neighbors are out of bounds of the map
 getNeighbours <-function(current, roads){
   neighbours = list()
   #Check neighbours to left or right
@@ -348,7 +348,6 @@ getNextNode <- function(set, fScore){
   return (bestNode)
 }
 manhattanDistance <- function(start, goal, roads){
-  #print(paste0("Finding Manhattan distance!"))
   # print("Start: ")
   # print(start)
   # print("Goal: ")
@@ -360,31 +359,18 @@ manhattanDistance <- function(start, goal, roads){
   yMax = max(start$y, goal$y)
   xMin = min(start$x, goal$x)
   xMax = min(start$x, goal$x)
-  
-  # testH = sum(roads$hroads[min, min(start$x, goal$x):(max(start$x,goal$x)-1)])
-  # testV = sum(roads$vroads[(max(start$x, goal$x)-1):min(start$x, goal$x), min])
-  # testV = sum(roads$vroads[min(start$y, goal$y):(max(start$y, goal$y)-1), min(start$x, goal$x)])
-  # testH = sum(roads$hroads[max(start$y, goal$y), min(start$x,goal$x):(max(start$x, goal$x)-1)])
+  #This catches cases where the car is already horizonatally in line with package
   if(start$y == goal$y) {
     testV = 0
   } else {
     testV = sum(roads$vroads[yMin:(yMax-1), xMin])
   }
+  #Again, catches case where car is already vertically in line with package
   if(start$x == goal$x) {
     testH = 0
   } else {
     testH = sum(roads$hroads[yMax, xMin:(xMax-1)])
   }
-  
-  
-  # #Sum horizontal distances
-  # for(i in min(start$x, goal$x):(max(start$x,goal$x)-1)) {
-  #   hDist = hDist + roads$hroads[min, i]
-  # }
-  # #Sum vertical values... I think I can use the same min as above?
-  # for(i in (max(start$x, goal$x)-1):min(start$x, goal$x)) {
-  #   vDist = vDist + roads$vroads[i, min]
-  # }
   
   distance = testH + testV
   return(distance)
@@ -408,10 +394,12 @@ chooseBestPackage <- function(car, packages, roads) {
         y=packages[packageNum,2]
         desx=packages[packageNum, 3]
         desy=packages[packageNum, 4]
+        #Dist is the sum of distance from car to package and distance from package to destination
         packageAdd <- list(row=packageNum, x=x, y=y, dist=(abs(x-car$x)+abs(y-car$y)+abs(x-desx)+abs(y-desy)))
         packageList = list.append(packageList, packageAdd)
       }
     }
+    #Sorts list to have shortest distance at first entry
     packageList = list.sort(packageList, dist)
     bestPackage <- list(x=packageList[[1]]$x, y=packageList[[1]]$y)
   }
