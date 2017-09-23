@@ -396,7 +396,6 @@ deriveStepFromNeighbour <- function(current, neighbour){
   if(current$y+1 == neighbour$y) return(2)
   if(current$y-1 == neighbour$y) return(8)
 }
-
 chooseBestPackage <- function(car, packages, roads) {
   start <- list(x=car$x, y=car$y)
   if(car$load>0){
@@ -407,7 +406,9 @@ chooseBestPackage <- function(car, packages, roads) {
       if(packages[packageNum,5]==0){
         x=packages[packageNum,1]
         y=packages[packageNum,2]
-        packageAdd <- list(row=packageNum, x=x, y=y, dist=(abs(x-car$x)+abs(y-car$y)))
+        desx=packages[packageNum, 3]
+        desy=packages[packageNum, 4]
+        packageAdd <- list(row=packageNum, x=x, y=y, dist=(abs(x-car$x)+abs(y-car$y)+abs(x-desx)+abs(y-desy)))
         packageList = list.append(packageList, packageAdd)
       }
     }
