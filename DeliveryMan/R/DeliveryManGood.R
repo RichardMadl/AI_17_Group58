@@ -376,7 +376,7 @@ manhattanDistance <- function(start, goal, roads){
     testH = sum(roads$hroads[yMax, xMin:(xMax-1)])
   }
   
-    
+  
   # #Sum horizontal distances
   # for(i in min(start$x, goal$x):(max(start$x,goal$x)-1)) {
   #   hDist = hDist + roads$hroads[min, i]
