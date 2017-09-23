@@ -361,18 +361,18 @@ manhattanDistance <- function(start, goal, roads){
   xMax = min(start$x, goal$x)
   #This catches cases where the car is already horizonatally in line with package
   if(start$y == goal$y) {
-    testV = 0
+    V = 0
   } else {
-    testV = sum(roads$vroads[yMin:(yMax-1), xMin])
+    V = sum(roads$vroads[yMin:(yMax-1), xMin])
   }
-  #Again, catches case where car is already vertically in line with package
+  #Catches case where car is already vertically in line with package
   if(start$x == goal$x) {
-    testH = 0
+    H = 0
   } else {
-    testH = sum(roads$hroads[yMax, xMin:(xMax-1)])
+    H = sum(roads$hroads[yMax, xMin:(xMax-1)])
   }
   
-  distance = testH + testV
+  distance = H + V
   return(distance)
 }
 
@@ -384,6 +384,7 @@ deriveStepFromNeighbour <- function(current, neighbour){
 }
 chooseBestPackage <- function(car, packages, roads) {
   start <- list(x=car$x, y=car$y)
+  #If the car has a package, return the coordinates of the destination
   if(car$load>0){
     bestPackage <- list(x=packages[car$load,3], y=packages[car$load,4])
   } else {
